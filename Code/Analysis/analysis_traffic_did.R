@@ -200,13 +200,13 @@ priors_dist <- c( set_prior("normal(-0.25, 0.5)", class = "b",
                   set_prior("normal(0, 0.5)", class = "b", coef = c("wdTuesday", "wdWednesday", "wdThursday",
                                                                  "wdFriday", "wdSaturday", "wdSunday")))
   
-model_formula <- paste(paste0("avg_km_by_resident"), paste(". + offset(log(canton_pop)) + (1|canton_codes) - canton_pop - canton_codes"), sep = " ~ ")
+model_formula <- paste(paste0("avg_distance_km"), paste(". + offset(log(canton_pop)) + (1|canton_codes) - canton_pop - canton_codes"), sep = " ~ ")
 model_formula <- brmsformula(model_formula, center = TRUE)
   
 # lognormal model as distances are not counts
 nb_logtrend_dist <- brm(model_formula,
                         family = lognormal(link = "identity", link_sigma = "identity"),
-                        data=dta %>% dplyr::select(avg_km_by_resident,
+                        data=dta %>% dplyr::select(avg_distance_km,
                                                     canton_pop, wd, t_num_ln, t_num_ln_mean, canton_codes,
                                                     eth_ban_5, gath100, eth_closed_borders, eth_closed_schools, eth_closed_stores_bars),
                         prior = priors_dist, 
