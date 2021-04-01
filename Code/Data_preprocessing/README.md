@@ -1,6 +1,5 @@
 ### Data preprocessing
 
-1. Run all "load" scripts to output preprocessed data for analysis.
-2. Run "merge_data.R" to output merged data set for analysis.
+Scripts "load..." take as input the raw source data and output preprocessed data to subdirectories under "Data".
 
-Note: As the preprocessed output data are already available under "Data", the above steps are not necessary for running the scripts in "Analysis", "Plotting", or "Tables".
+Script "merge_data.R" take the preprocessed data as input and outputs "Merged_panel_data.csv" under "Data". This is the data set used for analysis.
