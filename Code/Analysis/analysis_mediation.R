@@ -46,10 +46,8 @@ dta <- dta %>%
          t_f = as.factor(t_num),
          wd = as.factor(wd),
          date_f = as.factor(date),
-         week_f = as.factor(strftime(date, format = "%V")))
-
-# Set monday as reference weekday
-dta <- within(dta, wd <- relevel(wd, ref = "Monday"))
+         week_f = as.factor(strftime(date, format = "%V"))) %>%
+  within(dta, wd <- relevel(wd, ref = "Monday")) # Set monday as reference weekday
 
 ### create leads of variables
 dta <- dta %>% 
@@ -105,7 +103,7 @@ remove(dta_mean)
 #--------------------- Structural equation model -------------------------
 
 range_lags <- 7:13 
-nb_sem_trend <- list() 
+nb_sem_logtrend <- list() 
 
 direct_summary <- list()
 mediator_summary <- list()
@@ -161,7 +159,7 @@ for ( s in range_lags ) {
                         paste0("ln_",m,"_trips_2020_lag",s), paste0("ln_",m,"_trips_2020_lag",s,"_mean") )
   outcome_formula <- as.formula(paste(outcome_depvar, paste(outcome_predvar, collapse=" + "), sep=" ~ "))
   
-  nb_sem_trend[[paste(m,s)]] <- brm(  mvbf(mediator_formula, outcome_formula, rescor = NULL),
+  nb_sem_logtrend[[paste(m,s)]] <- brm(  mvbf(mediator_formula, outcome_formula, rescor = NULL),
                                       data = dta,
                                       family = negbinomial(link = "log", link_shape = "log"),
                                       prior = priors,
@@ -174,7 +172,7 @@ for ( s in range_lags ) {
                                       seed = 12345)
   
   # direct effect estimates
-  direct_post[[paste(m,s)]] <- posterior_samples(nb_sem_trend[[paste(m,s)]], pars = c(paste0("b_bagfalle_eth_ban_5_lag",s,"TRUE"), paste0("b_bagfalle_gath100_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_borders_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_schools_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_stores_bars_lag",s,"TRUE")))
+  direct_post[[paste(m,s)]] <- posterior_samples(nb_sem_logtrend[[paste(m,s)]], pars = c(paste0("b_bagfalle_eth_ban_5_lag",s,"TRUE"), paste0("b_bagfalle_gath100_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_borders_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_schools_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_stores_bars_lag",s,"TRUE")))
   direct <- as.matrix(direct_post[[paste(m,s)]])
   direct <- 100*(exp(direct)-1) # transformation to multiplicative effects on natural scale
   direct <- mcmc_intervals(direct, pars = c(paste0("b_bagfalle_eth_ban_5_lag",s,"TRUE"), paste0("b_bagfalle_gath100_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_borders_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_schools_lag",s,"TRUE"), paste0("b_bagfalle_eth_closed_stores_bars_lag",s,"TRUE")),
@@ -182,7 +180,7 @@ for ( s in range_lags ) {
   direct_summary[[paste(m,s)]] <- direct$data
   
   # mediator effect estimates
-  mediator_post[[paste(m,s)]] <- posterior_samples(nb_sem_trend[[paste(m,s)]], pars = paste0("b_bagfalle_ln_",m,"_trips_2020_lag",s))[paste0("b_bagfalle_ln_",m,"_trips_2020_lag",s)]
+  mediator_post[[paste(m,s)]] <- posterior_samples(nb_sem_logtrend[[paste(m,s)]], pars = paste0("b_bagfalle_ln_",m,"_trips_2020_lag",s))[paste0("b_bagfalle_ln_",m,"_trips_2020_lag",s)]
   mediator <- as.matrix(mediator_post[[paste(m,s)]])
   mediator <- mcmc_intervals(mediator, pars = paste0("b_bagfalle_ln_",m,"_trips_2020_lag",s),
                              prob = 0.8, prob_outer = 0.95, point_est = "mean")
@@ -190,7 +188,7 @@ for ( s in range_lags ) {
   rep_mediator_post <- as.matrix(data.frame(rep(mediator_post[[paste(m,s)]], 5))) # repeat mediator effect for product method of indirect effect
   
   # treatment effect on mediator estimates
-  treat_to_mediator[[paste(m,s)]] <- posterior_samples(nb_sem_trend[[paste(m,s)]], c(paste0("b_",m,"trips2020lag",s,"_eth_ban_5_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_gath100_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_borders_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_schools_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_stores_bars_lag",s,"TRUE")))     
+  treat_to_mediator[[paste(m,s)]] <- posterior_samples(nb_sem_logtrend[[paste(m,s)]], c(paste0("b_",m,"trips2020lag",s,"_eth_ban_5_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_gath100_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_borders_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_schools_lag",s,"TRUE"), paste0("b_",m,"trips2020lag",s,"_eth_closed_stores_bars_lag",s,"TRUE")))     
   treat_mediator <- as.matrix(treat_to_mediator[[paste(m,s)]])
   treat_mediator <- 100*(exp(treat_mediator)-1) # transformation to multiplicative effects on natural scale
   
@@ -247,8 +245,8 @@ cor_plot <- list()
 par( mfrow = c(2,4), cex = 0.85, mar = c(5,4,2,1))
 for( s in 7:13){
   cor_vec <- c()
-  res_mediator <- residuals(nb_sem_trend[[paste(m,s)]], resp = paste0(m,"trips2020lag",s), method = "posterior_predict", type = "ordinary", summary = F)
-  res_outcome <- residuals(nb_sem_trend[[paste(m,s)]], resp = "bagfalle", method = "posterior_predict", type = "ordinary", summary = F)
+  res_mediator <- residuals(nb_sem_logtrend[[paste(m,s)]], resp = paste0(m,"trips2020lag",s), method = "posterior_predict", type = "ordinary", summary = F)
+  res_outcome <- residuals(nb_sem_logtrend[[paste(m,s)]], resp = "bagfalle", method = "posterior_predict", type = "ordinary", summary = F)
   for(k in 1:dim(res_mediator)[1]){
     cor_vec[k] <- cor(res_mediator[k,], res_outcome[k,], method = "pearson")
   }
@@ -268,11 +266,10 @@ for( s in 7:13){
   x2 <- min(which(dens$x >= q0.975))  
   
   # add shaded regions for the quantiles to the plot
-  with(dens, polygon(x=c(x[c(x1,x1:x2,x2)]), y= c(0, y[x1:x2], 0), col="gray80"))
+  with(dens, polygon(x=c(x[c(x1, x1:x2, x2)]), y= c(0, y[x1:x2], 0), col="gray80"))
   
   # summary statistics
   cor_mean[s-6] <- round(mean(cor_vec), 3) # mean correlation
   cor_lb[s-6] <- round(q0.025, 3) 
   cor_ub[s-6] <- round(q0.975, 3) 
 }
-

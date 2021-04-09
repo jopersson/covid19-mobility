@@ -201,7 +201,7 @@ pred_est <- function(model, mobility, lags){
   est_list <- list()
   for ( m in tripvars ){
     for( s in lags ){
-      posterior <- -as.matrix(model[[paste(m,s)]])
+      posterior <- -as.matrix(model[[paste(m,s)]]) # negative as we want predicted decrease given decrease
       posterior <- mcmc_intervals(posterior, prob = 0.8, prob_outer = 0.95, point_est = "mean")
       est_list[[paste(m,s)]] <- posterior$data
     }
@@ -412,6 +412,138 @@ plot_did <- function(estimates, mobility){
   }
   else
     return("Please specify second argument as one of 'total', 'mode', 'purpose'.")
+}
+
+
+# ggplot for pair of mobility~policy models
+plot_did_spatial <- function(estimates1, estimates2){
+  # Input:
+  #   estimates1: Posterior estimates from brm model object. Should be an object returned by function "did_est" ("list").
+  #   estimates2: Posterior estimates from brm model object. Should be an object returned by function "did_est" ("list").
+  # Output: ggplot object.
+  
+  ### tidy & plot
+  estimates1 <- estimates1  %>% 
+    filter(str_detect(parameter, "eth") | str_detect(parameter, "gath") ) %>%
+    mutate(Spatial = "Yes") %>%
+    mutate(parameter = str_replace(parameter, "b_", "")) %>%
+    mutate(parameter = str_replace(parameter, "TRUE", ""))
+  estimates2 <- estimates2  %>% 
+    filter(str_detect(parameter, "eth") | str_detect(parameter, "gath") ) %>%
+    mutate(Spatial = "No") %>%
+    mutate(parameter = str_replace(parameter, "b_", "")) %>%
+    mutate(parameter = str_replace(parameter, "TRUE", ""))
+  estimates <- bind_rows(estimates1, estimates2) 
+  
+  # calculate percentage effect and credible intervals
+  estimates <- estimates %>%
+    mutate(outer_lb = 100*(exp(ll)-1)) %>%
+    mutate(inner_lb = 100*(exp(l)-1)) %>%
+    mutate(est = 100*(exp(m)-1)) %>%
+    mutate(inner_ub = 100*(exp(h)-1)) %>%
+    mutate(outer_ub = 100*(exp(hh)-1)) %>%
+    
+    # add explicit NA; otherwise facet_wrap add NA plot
+    group_by(parameter, Spatial) %>%
+    ungroup() %>%
+    
+    # renaming
+    mutate(term = case_when( 
+      parameter == "gath100" ~ "Ban > 100",
+      parameter == "eth_ban_5" ~ "Ban > 5",
+      parameter == "eth_closed_borders" ~ "Closed borders",
+      parameter == "eth_closed_schools" ~ "Closed schools",
+      parameter == "eth_closed_stores_bars" ~ "Closed venues")) %>%
+    mutate(Order = case_when( 
+      term == "Ban > 100" ~ 1,
+      term == "Closed schools" ~ 2,
+      term == "Closed venues" ~ 3,
+      term == "Ban > 5" ~ 4,
+      term == "Closed borders" ~ 5)) 
+  cols <- c("Yes" = "#008694", "No" = "#D34F53")
+  plot <- estimates %>%
+    ggplot() +
+    # outer CI
+    geom_pointrange(aes(x = reorder(term, -Order), y = est, ymin = outer_lb, ymax = outer_ub, color = Spatial),                  
+                    size = 0.5,
+                    position=position_dodge(width = 0.5)) +
+    # inner CI
+    geom_linerange(aes(x = term, ymin = inner_lb, ymax = inner_ub, color = Spatial),                  
+                   size = 1.25,
+                   position=position_dodge(width = 0.5)) +
+    scale_color_manual(values = cols) +
+    theme_bw() +
+    geom_hline(yintercept = 0, size = 0.4, linetype = 2) +
+    coord_flip() +
+    ggtitle("") +
+    labs(y = "Effect size (%)", x = "")
+  plot
+}
+
+
+# ggplot for pair of mobility~policy models
+plot_did_dist <- function(estimates1, estimates2){
+  # Input:
+  #   estimates1: Posterior estimates from brm model object. Should be an object returned by function "did_est" ("list").
+  #   estimates2: Posterior estimates from brm model object. Should be an object returned by function "did_est" ("list").
+  # Output: ggplot object.
+  
+  ### tidy & plot
+  estimates1 <- estimates1  %>% 
+    filter(str_detect(parameter, "eth") | str_detect(parameter, "gath") ) %>%
+    mutate(Mobility = "Average distance") %>%
+    mutate(parameter = str_replace(parameter, "b_", "")) %>%
+    mutate(parameter = str_replace(parameter, "TRUE", ""))
+  estimates2 <- estimates2  %>% 
+    filter(str_detect(parameter, "eth") | str_detect(parameter, "gath") ) %>%
+    mutate(Mobility = "Total trips") %>%
+    mutate(parameter = str_replace(parameter, "b_", "")) %>%
+    mutate(parameter = str_replace(parameter, "TRUE", ""))
+  estimates <- bind_rows(estimates1, estimates2) 
+  
+  # calculate percentage effect and credible intervals
+  estimates <- estimates %>%
+    mutate(outer_lb = 100*(exp(ll)-1)) %>%
+    mutate(inner_lb = 100*(exp(l)-1)) %>%
+    mutate(est = 100*(exp(m)-1)) %>%
+    mutate(inner_ub = 100*(exp(h)-1)) %>%
+    mutate(outer_ub = 100*(exp(hh)-1)) %>%
+    
+    # add explicit NA; otherwise facet_wrap add NA plot
+    group_by(parameter, Mobility) %>%
+    ungroup() %>%
+    
+    # renaming
+    mutate(term = case_when( 
+      parameter == "gath100" ~ "Ban > 100",
+      parameter == "eth_ban_5" ~ "Ban > 5",
+      parameter == "eth_closed_borders" ~ "Closed borders",
+      parameter == "eth_closed_schools" ~ "Closed schools",
+      parameter == "eth_closed_stores_bars" ~ "Closed venues")) %>%
+    mutate(Order = case_when( 
+      term == "Ban > 100" ~ 1,
+      term == "Closed schools" ~ 2,
+      term == "Closed venues" ~ 3,
+      term == "Ban > 5" ~ 4,
+      term == "Closed borders" ~ 5))
+  cols <- c("Average distance" = "#008694", "Total trips" = "#D34F53")
+  plot <- estimates %>%
+    ggplot() +
+    # outer CI
+    geom_pointrange(aes(x = reorder(term, -Order), y = est, ymin = outer_lb, ymax = outer_ub, color = Mobility),                  
+                    size = 0.5,
+                    position=position_dodge(width = 0.5)) +
+    # inner CI
+    geom_linerange(aes(x = term, ymin = inner_lb, ymax = inner_ub, color = Mobility),                  
+                   size = 1.25,
+                   position=position_dodge(width = 0.5)) +
+    scale_color_manual(values = cols) +
+    theme_bw() +
+    geom_hline(yintercept = 0, size = 0.4, linetype = 2) +
+    coord_flip() +
+    ggtitle("") +
+    labs(y = "Effect size (%)", x = "")
+  plot
 }
 
 
@@ -752,7 +884,7 @@ plot_sem <- function(estimates, effect){
   
   plot <- grid.arrange(plot_ban100, plot_schools, plot_venues, plot_ban5, plot_borders,
                        nrow = 1,
-                       top = textGrob(paste0(capitalize(effect)," effect"), gp = gpar(fontface = 1, fontsize = 18)))
+                       top = textGrob(paste0(capitalize(effect)," effect"), gp = gpar(fontface = 1, fontsize = 16)))
   plot
 }
 

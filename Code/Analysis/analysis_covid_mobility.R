@@ -49,10 +49,8 @@ dta <- dta %>%
          t_f = as.factor(t_num),
          wd = as.factor(wd),
          date_f = as.factor(date),
-         week_f = as.factor(strftime(date, format = "%V")))
-
-# Set monday as reference weekday
-dta <- within(dta, wd <- relevel(wd, ref = "Monday"))
+         week_f = as.factor(strftime(date, format = "%V"))) %>%
+  within(dta, wd <- relevel(wd, ref = "Monday")) # Set monday as reference weekday
 
 ### create lags of policies 
 dta <- dta %>% 
@@ -98,11 +96,9 @@ dta$tests_std <- dta$tests*(dta$canton_pop/total_pop)
 
 # add log of number of tests and tests standardized to canton population size
 dta <- dta %>%
-  mutate(tests_ln = log(tests)) %>%
-  mutate(tests_std_ln = log(tests_std))
-
-# add percentage scaled version of test positivity rate
-dta$positivity_rate_pc <- 100*dta$positivity_rate
+  mutate(tests_ln = log(tests), # %>%
+         tests_std_ln = log(tests_std),
+         positivity_rate_pc = 100*positivity_rate)
 
 # add within-group mean of time-varying predictors
 dta_mean <- dta %>%
@@ -114,9 +110,9 @@ dta <- full_join(dta, dta_mean, by = "canton_codes")
 remove(dta_mean)
 
 # load data
-dta_dist <- read_csv(file=here::here("Data","MIP_data","Avg_travel_distances","Avg_daily_travel_distance_cantons.csv"))
+dta_dist <- read_csv(file=here::here("Data","MIP_data","Avg_daily_travel_distance_cantons.csv"))
 
-# pre-processing
+# pre-processing & merge
 dta_dist$date <- as.Date(dta_dist$date)
 dta_dist <- dta_dist %>% 
   filter(date >= as.Date("2020-02-24")) %>% 
@@ -130,7 +126,7 @@ remove(dta_dist)
 
 range_lags <- 7:13
 
-mod_bag_trend <- list()
+nb_bag_trend <- list()
 trip_cat <- c("total", "train", "road", "highway", "commuter", "non_commuter")
 
 for ( m in trip_cat ){
@@ -175,10 +171,10 @@ for ( m in trip_cat ){
   for ( s in range_lags ) {
     
     priors1 <- c(set_prior("normal(1, 1)", class = "b", coef = paste0("ln_",m,"_trips_2020_lag",s) ),
-                    set_prior("normal(0, 5)", class = "b", coef = paste0("ln_",m,"_trips_2020_lag",s,"_mean") ),
-                    set_prior("normal(1, 1)", class = "b", coef = "t_num_ln"),
-                    set_prior("normal(0, 5)", class = "b", coef = "t_num_ln_mean"),
-                    set_prior("normal(0, 0.5)", class = "b", coef = c("wdTuesday", "wdWednesday", "wdThursday",
+                 set_prior("normal(0, 5)", class = "b", coef = paste0("ln_",m,"_trips_2020_lag",s,"_mean") ),
+                 set_prior("normal(1, 1)", class = "b", coef = "t_num_ln"),
+                 set_prior("normal(0, 5)", class = "b", coef = "t_num_ln_mean"),
+                 set_prior("normal(0, 0.5)", class = "b", coef = c("wdTuesday", "wdWednesday", "wdThursday",
                                                                       "wdFriday", "wdSaturday", "wdSunday")))
 
     priors2 <- c(set_prior("normal(1, 1)", class = "b", coef = paste0("ln_",m,"_trips_2020_lag",s) ),
@@ -359,8 +355,14 @@ for ( m in trip_cat ){
 # See script "helper_functions.R" for the functions used below
 
 mod_list <- c(nb_bag_trend, nb_bag_week_trend, nb_bag_sqtrend, nb_bag_trend_tests, nb_bag_trend_positivity)
-plotname <- c("covid_nb_logtrend.pdf", "covid_nb_week_logtrend.pdf", "covid_nb_sqtrend.pdf",
+plotname <- c("covid_nb_logtrend.pdf", "covid_nb_logtrend_week.pdf", "covid_nb_sqtrend.pdf",
               "covid_nb_logtrend_tests.pdf", "covid_nb_logtrend_positivity.pdf")
+
+nb_logtrend <- nb_bag_trend
+nb_logtrend_week <- nb_bag_week_trend
+nb_sqtrend <- nb_bag_sqtrend
+nb_logtrend_tests <- nb_bag_trend_tests
+nb_logtrend_positivity <- nb_bag_trend_positivity
 
 for(i in 1:length(plotname) ){
   

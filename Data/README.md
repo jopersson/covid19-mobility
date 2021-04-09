@@ -1,7 +1,7 @@
 ### Data
 
-This folder contains the raw source data and the preprocessed output data from scripts under "Data_preprocessing".
-See the respective subdirectories for descriptions of which is source data and output data and how the latter is generated from the former.
-
 The data file "Merged_panel_data.csv" is the main dataset used for analysis.
-See folder "Data_preprocessing" for how it is generated.
+The subdirectories contain the preprocessed data that are merged into the former and other data used for generating figures and tables.
+
+See folder "Data_preprocessing" under "Code" for how the preprocessed and merged data are generated.
+See the respective subdirectories here for descriptions of the preprocessed data and links to download the raw source data.

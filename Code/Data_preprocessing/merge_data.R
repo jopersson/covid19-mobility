@@ -18,7 +18,7 @@ source(here::here("Code","helper_functions.R"))
 bag <- read_csv(here::here("Data","BAG_covid","BAG_covid.csv"))
 
 # load policies, excluding Liechtenstein
-cons_policies_full <- read_csv(here::here("Data","Policies","Covid_policies_consolidated_full.csv"))
+cons_policies_full <- read_csv(here::here("Data","Policies","consolidated_policies.csv"))
 cons_policies_full <- cons_policies_full %>% filter(canton != "FL")
 eth_policies_full <- read_csv(here::here("Data","Policies","ETH_policies.csv"))
 
@@ -29,7 +29,7 @@ test_dta <- read_csv(here::here("Data","BAG_covid","tests.csv"))
 canton_pop <- read_csv(here::here("Data","BFS_canton_population","canton_pop_2019.csv"))
 
 # total trips from MIP
-mip_wide <- read_csv(file=here::here("Data","MIP_data","processed_MIP_wide.csv"))
+mip_wide <- read_csv(file=here::here("Data","MIP_data","processed_MIP.csv"))
 
 ### merge BAG and Policies
 dta <- full_join(bag, cons_policies_full %>% dplyr::select(-canton_names),

@@ -10,7 +10,7 @@ library("stringr")
 
 rm(list=ls())
 
-cons_policies <- read_excel(here::here("Data","Policies","covid-19_mobility_policies_consolidated.xlsx"))
+cons_policies <- read_excel(here::here("Data","Policies","consolidated_policies_source.xlsx"))
 cons_policies <- cons_policies %>% janitor::clean_names()
 cons_policies <- cons_policies %>%
   mutate(announced_date = dmy(announced_date),
@@ -78,6 +78,4 @@ cons_policies_full <- cons_policies_full %>%
   pivot_wider(names_from=policy_short, values_from=value)
 
 ## saving
-save(cons_policies, file=here::here("Data","Policies","Covid_policies_consolidated.RData"))
-save(cons_policies_full, file=here::here("Data","Policies","Covid_policies_consolidated_full.RData"))
-write_csv(cons_policies_full, path=here::here("Data","Policies","Covid_policies_consolidated_full.csv"))
+write_csv(cons_policies_full, path=here::here("Data","Policies","consolidated_policies.csv"))

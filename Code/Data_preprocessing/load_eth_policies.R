@@ -54,5 +54,4 @@ eth_policies_full <- eth_policies_full %>%
       pivot_wider(names_from = policy, values_from=value)
 
 ## saving
-save(eth_policies_full, file=here::here("Data","Policies","ETH_policies.RData"))
 write_csv(eth_policies_full, path=here::here("Data","Policies","ETH_policies.csv"))

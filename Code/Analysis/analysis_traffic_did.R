@@ -52,10 +52,8 @@ dta <- dta %>%
          t_f = as.factor(t_num),
          wd = as.factor(wd),
          date_f = as.factor(date),
-         week_f = as.factor(strftime(date, format = "%V")))
-
-# Set monday as reference weekday
-dta <- within(dta, wd <- relevel(wd, ref = "Monday"))
+         week_f = as.factor(strftime(date, format = "%V"))) %>%
+  within(dta, wd <- relevel(wd, ref = "Monday")) # Set monday as reference weekday
 
 # remove some policies since we can't identify all of them
 dta <- dta %>% dplyr::select(- contains("ban_30"),
@@ -81,7 +79,7 @@ dta <- full_join(dta, dta_mean, by = "canton_codes")
 remove(dta_mean)
 
 # load avg distance travelled
-dta_dist <- read_csv(file=here::here("Data","MIP_data","Avg_travel_distances","Avg_daily_travel_distance_cantons.csv"))
+dta_dist <- read_csv(file=here::here("Data","MIP_data","Avg_daily_travel_distance_cantons.csv"))
 
 # pre-processing
 dta_dist$date <- as.Date(dta_dist$date)
@@ -133,7 +131,7 @@ for ( m in trip_cat ){
 #--------------------- Robustness checks: Alternative time-effect specifications -------------------------
 
 
-nb_week_logtrend <- list()
+nb_logtrend_week <- list()
 nb_sqtrend <- list()
 trip_cat <- c("total", "train", "road", "highway", "commuter", "non_commuter")
 
@@ -158,7 +156,7 @@ for ( m in trip_cat ){
   model_formula <- paste(paste0(m,"_trips_2020"), paste(". + offset(log(canton_pop)) + (1|canton_codes) - canton_pop - canton_codes"), sep = " ~ ")
   model_formula <- brmsformula(model_formula, center = TRUE)
   
-  nb_week_logtrend[[paste(m)]] <- brm( model_formula,
+  nb_logtrend_week[[paste(m)]] <- brm( model_formula,
                                        family = negbinomial(link = "log", link_shape = "log"),
                                        data=dta %>% dplyr::select(!!paste0(m,"_trips_2020"),
                                                                   canton_pop, wd, week_f, t_num_ln, t_num_ln_mean, canton_codes,
@@ -190,40 +188,44 @@ for ( m in trip_cat ){
 
 #--------------------- Robustness check: Main Model with average distance instead of trips -------------------------
 
-# fit model
-nb_logtrend_dist <- list()
 
-priors_dist <- c( set_prior("normal(-0.25, 0.5)", class = "b", 
+nb_logtrend_dist <- list()
+trip_cat <- c("total")
+
+for ( m in trip_cat ){
+  
+  priors_dist <- c( set_prior("normal(-0.25, 0.5)", class = "b", 
                               coef = c("eth_ban_5TRUE", "gath100TRUE", "eth_closed_bordersTRUE", "eth_closed_schoolsTRUE", "eth_closed_stores_barsTRUE")),
-                  set_prior("normal(1, 1)", class = "b", coef = "t_num_ln"),
-                  set_prior("normal(0, 5)", class = "b", coef = "t_num_ln_mean"),
-                  set_prior("normal(0, 0.5)", class = "b", coef = c("wdTuesday", "wdWednesday", "wdThursday",
-                                                                 "wdFriday", "wdSaturday", "wdSunday")))
+                    set_prior("normal(1, 1)", class = "b", coef = "t_num_ln"),
+                    set_prior("normal(0, 5)", class = "b", coef = "t_num_ln_mean"),
+                    set_prior("normal(0, 0.5)", class = "b", coef = c("wdTuesday", "wdWednesday", "wdThursday",
+                                                                      "wdFriday", "wdSaturday", "wdSunday")))
   
-model_formula <- paste(paste0("avg_distance_km"), paste(". + offset(log(canton_pop)) + (1|canton_codes) - canton_pop - canton_codes"), sep = " ~ ")
-model_formula <- brmsformula(model_formula, center = TRUE)
+  model_formula <- paste(paste0("avg_distance_km"), paste(". + offset(log(canton_pop)) + (1|canton_codes) - canton_pop - canton_codes"), sep = " ~ ")
+  model_formula <- brmsformula(model_formula, center = TRUE)
   
-# lognormal model as distances are not counts
-nb_logtrend_dist <- brm(model_formula,
-                        family = lognormal(link = "identity", link_sigma = "identity"),
-                        data=dta %>% dplyr::select(avg_distance_km,
-                                                    canton_pop, wd, t_num_ln, t_num_ln_mean, canton_codes,
-                                                    eth_ban_5, gath100, eth_closed_borders, eth_closed_schools, eth_closed_stores_bars),
-                        prior = priors_dist, 
-                        inits = 0, 
-                        chains = 4,
-                        iter = 4000,
-                        thin = 2, 
-                        cores = parallel::detectCores(), 
-                        control = list(adapt_delta = 0.99999, max_treedepth = 15), 
-                        seed = 12345 )
+  # lognormal model as distances are not counts
+  nb_logtrend_dist[[paste(m)]] <- brm(model_formula,
+                                      family = lognormal(link = "identity", link_sigma = "identity"),
+                                      data=dta %>% dplyr::select(avg_distance_km,
+                                                                 canton_pop, wd, t_num_ln, t_num_ln_mean, canton_codes,
+                                                                 eth_ban_5, gath100, eth_closed_borders, eth_closed_schools, eth_closed_stores_bars),
+                                      prior = priors_dist, 
+                                      inits = 0, 
+                                      chains = 4,
+                                      iter = 4000,
+                                      thin = 2, 
+                                      cores = parallel::detectCores(), 
+                                      control = list(adapt_delta = 0.99999, max_treedepth = 15), 
+                                      seed = 12345 )
+}
 
 
 #--------------------- Spatial Model -------------------------
 
 
 # Spatial random effect via BYM2 component
-
+nb_logtrend_bym2 <- list()
 trip_cat <- c("total")
 
 for ( m in trip_cat ){
@@ -263,7 +265,7 @@ for ( m in trip_cat ){
 #--------------------- Multivariate Model -------------------------
 
 
-all_priors <- c(set_prior("normal(-0.25, 0.25)", class = "b", 
+priors_mv <- c(set_prior("normal(-0.25, 0.25)", class = "b", 
                           coef = c("eth_ban_5TRUE", "gath100TRUE", "eth_closed_bordersTRUE", "eth_closed_schoolsTRUE", "eth_closed_stores_barsTRUE"),
                           resp = "totaltrips2020"),
                 set_prior("normal(-0.25, 0.25)", class = "b", 
@@ -306,16 +308,16 @@ all_priors <- c(set_prior("normal(-0.25, 0.25)", class = "b",
                 
                 set_prior("lkj_corr_cholesky(2)", class = "cor", group = "canton_codes"))
 
-alltrips_formula <- brmsformula( mvbind(total_trips_2020, 
+model_formula_mv <- brmsformula( mvbind(total_trips_2020, 
                                         commuter_trips_2020, non_commuter_trips_2020, train_trips_2020, road_trips_2020, highway_trips_2020)
                                  ~ offset(log(canton_pop)) + wd + t_num_ln + t_num_ln_mean +
                                    eth_ban_5 + gath100 + eth_closed_borders + eth_closed_schools + eth_closed_stores_bars +
                                    (1 |c| canton_codes),
                                  family = negbinomial(link = "log", link_shape = "log") )
 
-nb_all_logtrend <- brm( formula = alltrips_formula,
+nb_logtrend_mv <- brm( formula = model_formula_mv,
                         data = dta,
-                        prior = all_priors, 
+                        prior = priors_mv, 
                         inits = 0, 
                         chains = 4,
                         iter = 4000,
@@ -330,9 +332,11 @@ nb_all_logtrend <- brm( formula = alltrips_formula,
 
 # See script "helper_functions.R" for the functions used below
 
-mod_list <- c(nb_logtrend, nb_week_logtrend, nb_sqtrend, nb_logtrend_dist)
-plotname <- c("did_traffic_nb_logtrend.pdf", "did_traffic_nb_week_logtrend.pdf",
+mod_list <- c(nb_logtrend, nb_logtrend_week, nb_sqtrend, nb_logtrend_dist)
+plotname <- c("did_traffic_nb_logtrend.pdf", "did_traffic_nb_logtrend_week.pdf",
               "did_traffic_nb_sqtrend.pdf", "did_traffic_nb_logtrend_dist.pdf")
+
+
 
 for(i in 1:length(plotname) ){
   
@@ -362,24 +366,38 @@ for(i in 1:length(plotname) ){
 }
 
 
-#--------------------- Plot for Spatial Model  -------------------------
+#--------------------- Plot for Model of Avg distance traveled -------------------------
 
-mod_list <- nb_logtrend_bym2
-plotname <- "did_traffic_total_spatial_nb_logtrend"
-
-# set model to obtain estimates from. 
-model_to_check <- mod_list
+plotname <- "did_traffic_nb_logtrend_dist.pdf"
 
 # get model posterior estimates
-did_total <- did_est(model_to_check, "total")
+did_dist <- did_est(nb_logtrend_dist, "total")
+did_total <- did_est(nb_logtrend, "total")
 
-ggsave(filename = paste0(outpath, "/", plotname), plot = did_total, width = 12, height = 4)
+plot_dist <- plot_did_dist(did_dist, did_total)
+
+ggsave(filename = paste0(outpath, "/", plotname), plot = plot_dist, width = 6.5, height = 4)
+
+
+#--------------------- Plot for Spatial Model  -------------------------
+
+plotname <- "did_traffic_nb_logtrend_dist_spatial.pdf"
+
+# get model posterior estimates
+did_spatial <- did_est(nb_logtrend_bym2, "total")
+did_total <- did_est(nb_logtrend, "total")
+
+plot_spatial <- plot_did_spatial(did_spatial, did_total)
+
+ggsave(filename = paste0(outpath, "/", plotname), plot = plot_spatial, width = 6.5, height = 4)
 
 
 # -------------------- Plot for Multivariate model -------------------------
 
 
-model_to_check <- nb_all_logtrend 
+model_to_check <- nb_logtrend_mv 
+plotname <- "did_traffic_nb_logtrend_mv.pdf"
+
 
 # get model posterior estimates
 did_total_mv <- did_est_mv(model_to_check, "total")
@@ -394,7 +412,7 @@ plot_purpose_mv <- plot_did(did_purpose_mv, "purpose")
 # plot all side-by-side
 plot <- grid.arrange(plot_total_mv, plot_mode_mv, plot_purpose_mv, widths = c(2.45, 2, 2))
 
-ggsave(filename = paste0(outpath,"/did_traffic_allplots_nb_mv_logtrend.pdf"), plot = plot, width = 12, height = 4)
+ggsave(filename = paste0(outpath,"/",plotname), plot = plot, width = 12, height = 4)
 
 
 #--------------------- Model diagnostics -------------------------
@@ -408,21 +426,22 @@ param_names <- c("gath100TRUE", "eth_closed_schoolsTRUE", "eth_closed_stores_bar
 # specify model to get diagnostics from
 model_to_check <- nb_logtrend
 
-# Posterior predictive plot for the mobility models
 pp_plots <- list()
-for ( m in 1:length(dep_vars) ) {
-  mod_obj <- model_to_check[[paste(dep_vars[m])]]
+td_plot <- list()
+
+for( m in dep_vars){
+  
+  ## Posterior predictive plot for the mobility models
+  mod_obj <- model_to_check[[paste(m)]]
   
   # posterior predictive plot
-  pp_plots[[m]] <- pp_check(mod_obj) + ggtitle( paste(capitalize(dep_vars[m]), "trips", sep = " ") )
-}
-pdf(file = paste0(outpath, "traffic_pp_check_total.pdf"), width = 12, height = 1.75)
-pp_check(model_to_check$total) + ggtitle( paste(capitalize(dep_vars[m]), "trips", sep = " ") )
-dev.off()
-
-
-# Trace & Density of policy measures effect on each mobility category
-for( m in dep_vars){
+  pp_plots[[m]] <- pp_check(mod_obj) + ggtitle( paste(capitalize(m), "trips", sep = " ") )
+  
+  # write pdf
+  ggsave(filename = paste0(outpath, "/", "traffic_pp_check_",m,".pdf"), plot = pp_plots[[m]], width = 12, height = 1.75)
+  
+  
+  ## Trace & density of policy measures effect on each mobility category
   posterior_plots <- list()
   param_plots <- list()
   
@@ -441,53 +460,52 @@ for( m in dep_vars){
   }
   
   # Trace & Density plot
-  pdf(file = paste0(outpath, "traffic_trace_density_",m,".pdf"), width = 12, height = 15)
-  grid.arrange(posterior_plots[[1]]$bayesplots[[1]], posterior_plots[[1]]$bayesplots[[2]], 
-               posterior_plots[[2]]$bayesplots[[1]], posterior_plots[[2]]$bayesplots[[2]],
-               posterior_plots[[3]]$bayesplots[[1]], posterior_plots[[3]]$bayesplots[[2]],
-               posterior_plots[[4]]$bayesplots[[1]], posterior_plots[[4]]$bayesplots[[2]],
-               posterior_plots[[5]]$bayesplots[[1]], posterior_plots[[5]]$bayesplots[[2]],
-               nrow = 5, ncol = 2)
-  dev.off()
-
+  td_plot[[m]] <-  grid.arrange( posterior_plots[[1]]$bayesplots[[1]], posterior_plots[[1]]$bayesplots[[2]], 
+                                 posterior_plots[[2]]$bayesplots[[1]], posterior_plots[[2]]$bayesplots[[2]],
+                                 posterior_plots[[3]]$bayesplots[[1]], posterior_plots[[3]]$bayesplots[[2]],
+                                 posterior_plots[[4]]$bayesplots[[1]], posterior_plots[[4]]$bayesplots[[2]],
+                                 posterior_plots[[5]]$bayesplots[[1]], posterior_plots[[5]]$bayesplots[[2]],
+                                 nrow = 5, ncol = 2)
+  # write pdf
+  ggsave(filename = paste0(outpath, "/", "traffic_trace_density_",m,".pdf"), plot = td_plot[[m]], width = 12, height = 15)
+  
+  
   # ACF, Neff and Rhat plots 
-  acf_plots <- list()
-  neff_plots <- list()
-  rhat_plots <- list()
+  acf_panels <- list()
+  neff_panels <- list()
+  rhat_panels <- list()
   
   for ( c in 1:length(param_names) ) {  
     mod_obj <- model_to_check[[paste(m)]]
     
     # ACF for all model parameters
-    acf_plot <- mcmc_acf( as.array(mod_obj, pars = paste0("b_", param_names[c]), fixed = TRUE), lags = 10, size = 1 )
-    acf_plot[[1]]$Parameter <- paste(policies[c])
-    acf_plots[[c]] <- acf_plot + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
+    acf_panel <- mcmc_acf( as.array(mod_obj, pars = paste0("b_", param_names[c]), fixed = TRUE), lags = 10, size = 1 )
+    acf_panel[[1]]$Parameter <- paste(policies[c])
+    acf_panels[[c]] <- acf_panel + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
     
     # Neff for all model parameters
-    neff_plots[[c]] <- mcmc_neff( neff_ratio(mod_obj), size = 3 ) + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
+    neff_panels[[c]] <- mcmc_neff( neff_ratio(mod_obj), size = 3 ) + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
     
     # Rhat for all model parameters
-    rhat_plots[[c]] <- mcmc_rhat( rhat(mod_obj), size = 3  ) + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
+    rhat_panels[[c]] <- mcmc_rhat( rhat(mod_obj), size = 3  ) + ggtitle(paste(capitalize(m),"trips ~", policies[c], sep = " "))
   }
   
-  # ACF plot
-  pdf(file = paste0(outpath, "traffic_acf_",m,".pdf"), width = 12, height = 15)
-  grid.arrange(acf_plots[[1]], acf_plots[[2]], acf_plots[[3]], acf_plots[[4]], acf_plots[[5]],
-               ncol = 2)
-  dev.off()
-
-  # Neff plot
-  pdf(file = paste0(outpath, "traffic_neff_",m,".pdf"), width = 12, height = 15)
-  grid.arrange(neff_plots[[1]], neff_plots[[2]], neff_plots[[3]], neff_plots[[4]], neff_plots[[5]],
-               ncol = 2)
-  dev.off()
+  # write pdf for ACF plot
+  acf_plot <- grid.arrange(acf_panels[[1]], acf_panels[[2]], acf_panels[[3]], acf_panels[[4]], acf_panels[[5]],
+                           ncol = 2)
+  ggsave(filename = paste0(outpath, "/", "traffic_acf_",m,".pdf"), plot = acf_plot, width = 12, height = 15)
   
-  # Rhat plot
-  pdf(file = paste0(outpath, "traffic_rhat_",m,".pdf"), width = 12, height = 15)
-  grid.arrange(rhat_plots[[1]], rhat_plots[[2]], rhat_plots[[3]], rhat_plots[[4]], rhat_plots[[5]],
-               ncol = 2)
-  dev.off()
-
+  # write pdf for Neff plot
+  neff_plot <- grid.arrange(neff_panels[[1]], neff_panels[[2]], neff_panels[[3]], neff_panels[[4]], neff_panels[[5]],
+                            ncol = 2)
+  ggsave(filename = paste0(outpath, "/", "traffic_neff_",m,".pdf"), plot = neff_plot, width = 12, height = 15)
+  
+  
+  # write pdf for Rhat plot
+  rhat_plot <- grid.arrange(rhat_panels[[1]], rhat_panels[[2]], rhat_panels[[3]], rhat_panels[[4]], rhat_panels[[5]],
+                            ncol = 2)
+  ggsave(filename = paste0(outpath, "/", "traffic_rhat_",m,".pdf"), plot = rhat_plot, width = 12, height = 15)
+  
   # Plot of estimated Pareto tail shape parameter k against observation indices to check influential observations
   pdf(file = paste0(outpath, "traffic_pareto_",m,".pdf"), width = 12, height = 15)
   par( mfrow = c(3,2), cex = 0.85 )
@@ -497,12 +515,9 @@ for( m in dep_vars){
     plot(x, diagnostic = "k", label_points = FALSE, moment_match = TRUE, main = paste(capitalize(m),"trips ~", policies[c], sep = " ") )
   }
   dev.off()
-
+  
   # plot bivariate posterior distributions of parameters with added regression line
-  mod_obj <- model_to_check$total
-  
-  pdf(file = paste0(outpath, "traffic_bivardist_",m,".pdf"), width = 12, height = 12)
-  
-  mcmc_pairs(mod_obj, regex_pars = c("eth", "gath"))
-  dev.off()
+  mod_obj <- model_to_check[[paste(m)]]
+  bivardist <- mcmc_pairs(mod_obj, regex_pars = c("eth", "gath"))
+  ggsave(filename = paste0(outpath, "/", "traffic_bivardist_",m,".pdf"), plot = bivardist, width = 12, height = 12)
 }

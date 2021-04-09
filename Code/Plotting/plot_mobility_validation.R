@@ -24,7 +24,7 @@ outpath <- here::here("Plots/mobility_validation/")
 
 # read data
 dta_dist_IV <- read_csv(file=here::here("Data","Intervista_AG","distances_radii.csv"))
-dta_dist_MIP <- read_csv(file=here::here("Data","MIP_data","Avg_travel_distances","Avg_daily_travel_distance_cantons.csv"))
+dta_dist_MIP <- read_csv(file=here::here("Data","MIP_data","Avg_daily_travel_distance_cantons.csv"))
 dta_trips_MIP <- read_csv(file=here::here("Data","Merged_panel_data.csv"))
 
 

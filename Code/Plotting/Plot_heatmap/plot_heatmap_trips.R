@@ -190,7 +190,8 @@ CH_map2 <-  ggplot(data = CH_df,
   theme_classic() +
   
   # title
-  labs(title = "") +
+  labs(title = "",
+       fill="Trip count\n(x 1,000,000)") +
   
   theme(
     # title, subtitle
@@ -213,23 +214,41 @@ CH_map2 <-  ggplot(data = CH_df,
     plot.margin = unit(c(0,0,0,0), "cm"),
     
     # legend specification
-    legend.position = "none") +
+    legend.position="right",
+    
+    legend.title = element_text(size=12),
+    legend.text=element_text(size=12),
+    # legend.direction = "vertical",
+    # legend.key.width = unit(.5, "cm"),
+    # legend.key.height = unit(1.25, "cm")) +
+    legend.direction = "vertical",
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(1.25, "cm")) +
+  
+  guides(fill = guide_colourbar(title.position = "right",
+                                title.hjust = 0.5,
+                                title.vjust = 0.5,
+                                label.position = "right")) +
   
   # fix ratio
   coord_fixed()
 
 
 # common legend for combined ggplots
-legend <- get_legend(CH_map1)
+legend_horiz <- get_legend(CH_map1)
+legend_vert <- get_legend(CH_map2)
+
 CH_map1 <- CH_map1 + theme(legend.position="none")
 CH_map2 <- CH_map2 + theme(legend.position="none")
 
 # show plots
 CH_map1
 CH_map2
-legend
+legend_horiz
+legend_vert
 
 # save plots
 ggsave("./Plots/Fig_1/CH_heatmap_month2019.pdf", plot = CH_map1, width = 4, height = 4)
 ggsave("./Plots/Fig_1/CH_heatmap_month2020.pdf", plot = CH_map2, width = 4, height = 4)
-ggsave("./Plots/Fig_1/CH_heatmap_colorbar_horizontal.pdf", plot = legend, width = 4, height = 1)
+ggsave("./Plots/Fig_1/CH_heatmap_colorbar_horizontal.pdf", plot = legend_horiz, width = 4, height = 1)
+ggsave("./Plots/Fig_1/CH_heatmap_colorbar_vertical.pdf", plot = legend_vert, width = 2, height = 4)
