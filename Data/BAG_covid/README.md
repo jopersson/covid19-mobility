@@ -3,9 +3,8 @@
 The data files "tests.csv" and "BAG_covid.csv" are used to obtain the merged modelling data.
 They are generated from raw data by running the scripts "load_test.R" and "load_BAG.R" in the folder "Data_preprocessing".
 
-The raw data are not distributed here due to copyright.
+The raw data available at the links provided below.
 
-sources:
 1. https://www.covid19.admin.ch/en/overview
 
     The following data files may be downloaded from the above link and are used in script "load_BAG.R":
@@ -19,4 +18,4 @@ sources:
 
 2. https://www.bag.admin.ch/bag/en/home/krankheiten/ausbrueche-epidemien-pandemien/aktuelle-ausbrueche-epidemien/novel-cov/situation-schweiz-und-international.html#-640157857
 
-  Click "Data on tests conducted (XLS, 22 kB, 09.04.2021)" to download the file "Dashboard_3_COVID19_labtests_positivity.xlsx". It is used in the script "load_test.R".
+    Click "Data on tests conducted (XLS, 22 kB, 09.04.2021)" to download the file "Dashboard_3_COVID19_labtests_positivity.xlsx". The script "load_test.R" uses this data to generate the preprocessed data file "test.csv".
