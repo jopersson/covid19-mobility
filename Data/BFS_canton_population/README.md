@@ -4,20 +4,10 @@ The data file "canton_pop.csv" is used to obtain the merged modelling data.
 The data files "canton_pop_2020_month.csv" and "canton_pop_2020_quarter.csv" are used for tables.
 They are all generated from raw data by running the script "load_canton_populations.R" in folder "Data_preprocessing".
 
-The raw data are available for download at the links below.
+- Data on permanent and non-permanent resident population by canton and first 3 quarters, 2020, are available [here](https://www.bfs.admin.ch/bfs/de/home/statistiken/bevoelkerung.assetdetail.14941425.html).
 
-"cc-d-01.01.04.xlsx" -
-Permanent and non-permanent resident population by canton and first 3 quarters, 2020:
-https://www.bfs.admin.ch/bfs/de/home/statistiken/bevoelkerung.assetdetail.14941425.html
+- Data on permanent and non-permanent resident population by canton in 2019 are available [here](https://www.bfs.admin.ch/bfs/en/home/statistics/catalogues-databases/data.assetdetail.14087625.html).
 
-"px-x-0103010000_119_20210329-091343.csv" -
-Permanent and non-permanent resident population by canton 2019:
-https://www.bfs.admin.ch/bfs/en/home/statistics/catalogues-databases/data.assetdetail.14087625.html
+- Data on births by canton 2020 are available [here](https://www.bfs.admin.ch/bfsstatic/dam/assets/15464262/master).
 
-"cc-d-01.04.01.01.02.xlsx" -
-Births by canton 2020:
-https://www.bfs.admin.ch/bfsstatic/dam/assets/15464262/master
-
-"cc-d-01.04.02.01.03.xlsx" -
-Deaths by canton 2020:
-https://www.bfs.admin.ch/bfsstatic/dam/assets/15464250/master
+- Data on deaths by canton 2020 are available [here](https://www.bfs.admin.ch/bfsstatic/dam/assets/15464250/master).

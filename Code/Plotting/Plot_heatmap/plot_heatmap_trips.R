@@ -21,7 +21,7 @@ source(here::here("Code","helper_functions.R"))
 ###############################################################################
 
 # load CH shape file
-CH <- readOGR(here::here("CH_shapefile","BOUNDARIES_2020","DATEN","swissBOUNDARIES3D","SHAPEFILE_LV03_LN02","swissBOUNDARIES3D_1_3_TLM_KANTONSGEBIET.shp"))
+CH <- readOGR(here::here("Data","CH_shapefile","BOUNDARIES_2020","DATEN","swissBOUNDARIES3D","SHAPEFILE_LV03_LN02","swissBOUNDARIES3D_1_3_TLM_KANTONSGEBIET.shp"))
 
 # fortify data
 CH_df <- fortify(CH)

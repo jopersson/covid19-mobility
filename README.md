@@ -4,6 +4,12 @@ This repository contains data and code for the following working paper:
 
 Persson, J., Parie, J. F., & Feuerriegel, S. (2021). Monitoring the COVID-19 epidemic with nationwide telecommunication data. [_arXiv preprint arXiv:2101.02521._](https://arxiv.org/abs/2101.02521)
 
+- **Code**: contains all code for pre-processing the raw data, merging data for analysis, statistical analysis presented in the main paper and supplementary information, and generating figures and tables.
+- **Data**: contains the pre-processed data and the merged data used for analysis. Links are provided for downloading the raw data.
+- **Plots***: contains all plots presented in the main paper and supplementary information.
+
+Additional details are found in the readme files in the respective folders.
+
 Please see the _Material and Methods_ in the working paper for details on data collection, data processing, and methods.
 
 
@@ -32,3 +38,8 @@ All code were run on the following hardware:
   - Memory: 8 GB
 
 The programs and packages were of the latest version as of January 2021.
+
+
+## Inquiries
+
+Please direct inquiries and correspondence to Joel Persson (jpersson [at] ethz [dot] ch).
