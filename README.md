@@ -42,4 +42,4 @@ The programs and packages were of the latest version as of January 2021.
 
 ## Inquiries
 
-Please direct inquiries and correspondence to Joel Persson (jpersson [at] ethz [dot] ch).
+Please direct inquiries and correspondence to Joel Persson (joelpersson [at] spotify [dot] com).
