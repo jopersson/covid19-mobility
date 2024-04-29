@@ -6,7 +6,7 @@ Persson, J., Parie, J. F., & Feuerriegel, S. (2021). Monitoring the COVID-19 epi
 
 - **Code**: contains all code for pre-processing the raw data, merging data for analysis, statistical analysis presented in the main paper and supplementary information, and generating figures and tables.
 - **Data**: contains the pre-processed data and the merged data used for analysis. Links are provided for downloading the raw data.
-- **Plots***: contains all plots presented in the main paper and supplementary information.
+- **Plots**: contains all plots presented in the main paper and supplementary information.
 
 Additional details are found in the readme files in the respective folders.
 
